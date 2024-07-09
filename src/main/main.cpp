@@ -206,42 +206,39 @@ fail:
     return -1;
 }
 
+void run_container() {
+    // make container directory
+    system("mkdir -p " CONTAINER_DIR);
+
+    // make mounts private
+    mount("none", "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
+
+    // mount the fs into the container directory
+    system("mount --bind " FS " " CONTAINER_DIR);
+
+    // unshare
+    unshare(
+        0
+        | CLONE_NEWNS
+        // | CLONE_NEWPID
+    );
+
+
+    // switch to the actual container root
+    switchroot(CONTAINER_DIR);
+
+    // run shell program
+#define SHELL_PATH "/bin/bash"
+    execl(SHELL_PATH, SHELL_PATH, nullptr);
+
+    cout << "shouldn't reach here" << endl;
+    exit(1);
+}
 
 int main() {
     pid_t container_pid = fork();
     if (container_pid == 0) {
-
-        // make container directory
-        system("mkdir -p " CONTAINER_DIR);
-        system("mount -n -t tmpfs -o size=500M none " CONTAINER_DIR);
-
-        // copy fs into container
-        system("cd " FS "; find . -depth -xdev -print | cpio -pd --quiet " CONTAINER_DIR);
-
-        // make mounts on "/" private
-        mount("none", "/", nullptr, MS_REC | MS_PRIVATE, nullptr);
-
-        // unshare
-        unshare(
-            0
-            | CLONE_NEWNS
-        );
-
-
-        // system("cd " CONTAINER_DIR "; switch_root . /bin/sh;");
-
-        // #define TEMP_OLD_ROOT "/home/user/temp_old_root"
-        //          mkdir(TEMP_OLD_ROOT, 0777);
-        //          syscall(SYS_pivot_root, CONTAINER_DIR, TEMP_OLD_ROOT);
-        //          chdir("/");
-        // system("/bin/sh");
-
-        switchroot(CONTAINER_DIR);
-#define SHELL_PATH "/bin/bash"
-        execl(SHELL_PATH, SHELL_PATH, nullptr);
-
-        cout << "shouldn't reach here" << endl;
-        exit(1);
+        run_container();
     }
 
     while (true) {
