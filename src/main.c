@@ -9,7 +9,7 @@ using namespace std;
 #include <sys/mount.h>
 
 #include "container.h"
-extern struct container_t contaier;
+extern struct container_t container;
 
 #define ERR (-1)
 
@@ -17,7 +17,7 @@ bool run_container() {
     // make the container directory (if not exists)
     puts("making the container dir");
     char command[PATH_MAX];
-    snprintf(command, PATH_MAX, "mkdir -p %s", contaier.top_dir);
+    snprintf(command, PATH_MAX, "mkdir -p %s", container.top_dir);
     system(command);
 
     // seperate namespaces using the unshare syscall
@@ -49,14 +49,14 @@ bool run_container() {
 
         // virtually mount the file system to the container directory
         puts("virtually mounting the file system");
-        if (mount(contaier.fs_path, contaier.top_dir, nullptr, MS_BIND | MS_PRIVATE | MS_REC, nullptr) == ERR)  {
+        if (mount(container.fs_path, container.top_dir, nullptr, MS_BIND | MS_PRIVATE | MS_REC, nullptr) == ERR)  {
             perror("virtually mount fs");
             return false;
         }
 
-        // switch to the root directory of the cotainer
+        // switch to the root directory of the container
         puts("changing the root directory for the container");
-        if (chroot(contaier.top_dir) == ERR)  {
+        if (chroot(container.top_dir) == ERR)  {
             perror("chroot");
             return false;
         }
